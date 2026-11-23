@@ -30,3 +30,24 @@ button:disabled{opacity:.5}
 .msg{min-height:1.4em;margin:6px 0 0;font-size:15px}.msg.bad{color:var(--bad)}
 details{margin-top:12px}summary{cursor:pointer;color:var(--dim);font-size:14px}
 .big{font-size:21px;font-weight:700;color:var(--gold)}
+
+/* ---- Alchemist's Advent theme ---- */
+:root{--bg:#0b1a22;--card:#12262f;--gold:#f0c35a;--dim:#9db4bd}
+body{background:radial-gradient(circle at 50% -10%,#1b4150,#0b1a22 62%);font-family:Georgia,"Times New Roman",serif}
+header.top h1{font-size:13px;letter-spacing:.1em}
+.card h2,.big{font-family:Georgia,serif}
+.card{border-color:#2a4a58}
+.card.story p{margin:.55em 0}
+.verse{font-style:italic;color:var(--gold);text-align:center;margin-top:14px !important;font-size:18px}
+.owl{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:12px auto;max-width:340px}
+.owl img,.owl .empty{display:block;width:100%;aspect-ratio:202/221;object-fit:cover;border-radius:8px}
+.owl .empty{background:#0b1a22;border:1px dashed #3b6272;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--dim)}
+.owl .empty span{font-size:34px;line-height:1}.owl .empty small{font-size:12px}
+.owl.whole{gap:0;box-shadow:0 0 28px #f0c35a66;border-radius:10px;overflow:hidden}
+.owl.whole img{border-radius:0}
+.piece{max-width:180px;margin:10px auto}.piece img{width:100%;border-radius:10px;box-shadow:0 0 18px #f0c35a55}
+.verses{padding-left:22px;margin:.4em 0}.verses li{margin:.35em 0}
+.verseLine{font-style:italic;color:var(--gold);font-size:18px}
+
+.stamp{text-align:center;font-size:20px;color:var(--gold);border:2px dashed var(--gold);border-radius:12px;padding:10px;margin:10px 0}
+.stamp #clk{font-size:15px;color:var(--ink);font-variant-numeric:tabular-nums}
