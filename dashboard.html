@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Race dashboard</title>
+<style>
+:root{--bg:#0b1a22;--card:#12262f;--ink:#f1ead7;--dim:#8fa7b1;--gold:#f0c35a;--ok:#4cc38a;--bad:#ff6b6b}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% -10%,#1b4150,#0b1a22 62%);color:var(--ink);font:15px/1.4 system-ui,"Segoe UI",Roboto,sans-serif;min-height:100vh}
+header{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;padding:14px 22px;border-bottom:1px solid #24424f}
+h1{font:700 19px Georgia,serif;margin:0;color:var(--gold)}
+.pill{display:inline-flex;align-items:center;gap:7px;background:var(--card);border:1px solid #2a4a58;border-radius:99px;padding:3px 12px;font-size:13px;white-space:nowrap}
+.dot{width:9px;height:9px;border-radius:50%;background:#777}.dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}.dot.err{background:var(--bad)}
+#clock{font-variant-numeric:tabular-nums;font-size:22px;margin-left:auto;white-space:nowrap}
+.ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;color:var(--dim)}
+button,select{font:inherit;font-size:13px;background:var(--card);color:var(--ink);border:1px solid #3b6272;border-radius:8px;padding:5px 11px;cursor:pointer}
+button:hover{border-color:var(--gold)}button.primary{border-color:var(--gold);color:var(--gold)}
+.note{margin:12px 22px 0;padding:8px 14px;border-radius:10px;font-size:13px;background:#3a2f10;border:1px solid #806420;color:#f3d58a}
+.note:empty{display:none}
+.msg{color:var(--bad);margin:8px 22px;font-size:13px}.msg:empty{display:none}
+main{padding:10px 22px 40px;max-width:1500px;margin:0 auto}
+h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:22px 0 8px}
+h2 small{letter-spacing:0;text-transform:none;color:var(--dim);font-weight:400;margin-left:10px}
+/* rooms */
+.rooms{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.room{background:var(--card);border:1px solid #2a4a58;border-radius:12px;padding:9px 11px;min-height:78px}
+.room.crowd{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad) inset}.room b{display:block;font-size:14px}.room small{color:var(--dim)}
+.chip{display:inline-block;margin:5px 5px 0 0;padding:1px 9px;border-radius:99px;font-size:12px;color:#fff;font-weight:600;border:1.5px solid transparent}
+.chip.enroute{background:transparent;border-style:dashed}
+.waiting{margin-top:8px;font-size:13px;color:var(--dim)}
+/* race */
+.race{background:var(--card);border:1px solid #2a4a58;border-radius:14px;padding:10px 14px 14px}
+.axis{position:relative;height:24px;margin-left:190px;margin-right:160px;border-bottom:1px solid #3b6272}
+.tick{position:absolute;top:2px;font-size:11px;color:var(--dim);transform:translateX(-50%);white-space:nowrap}
+.tick:after{content:"";position:absolute;left:50%;top:18px;height:4px;border-left:1px solid #3b6272}
+.lane{display:flex;align-items:center;height:64px;border-bottom:1px solid #1d3641}
+.who{width:190px;padding-right:10px;font-weight:700}.who small{display:block;font-weight:400;color:var(--dim);font-size:12px}
+.who i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:7px}
+.track{position:relative;flex:1;height:100%}
+.track:before{content:"";position:absolute;left:0;right:0;top:50%;border-top:2px solid #26414d}
+.fill{position:absolute;left:0;top:calc(50% - 4px);height:8px;border-radius:5px}
+.trail{position:absolute;top:50%;border-top:3px dotted;height:0}
+.cp{position:absolute;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;border:3px solid #0b1a22;box-shadow:0 0 0 2px var(--c);z-index:2}
+.cp em{position:absolute;top:31px;font-style:normal;font-size:10px;color:var(--dim);white-space:nowrap}
+.arr{position:absolute;top:50%;width:11px;height:11px;margin:-5px 0 0 -5px;transform:rotate(45deg);border:2px solid var(--c);background:#0b1a22;z-index:1}
+.nowdot{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--c);animation:pulse 1.4s infinite;z-index:1}
+@keyframes pulse{0%{box-shadow:0 0 0 0 var(--c)}100%{box-shadow:0 0 0 14px transparent}}
+.mark{position:absolute;top:50%;margin:-14px 0 0 12px;font-size:22px;line-height:28px;z-index:3}
+.stat{width:160px;padding-left:10px;font-size:12px;color:var(--dim);text-align:right}.stat b{color:var(--ink);font-size:13px}
+.stat button{padding:0 7px;font-size:11px;margin-left:4px}
+.legend{font-size:12px;color:var(--dim);margin-top:8px}.legend span{margin-right:18px;white-space:nowrap}
+/* ranking + log */
+.cols{display:grid;grid-template-columns:1fr 1.4fr;gap:16px}
+.box{background:var(--card);border:1px solid #2a4a58;border-radius:12px;padding:10px 14px}
+.lb div{display:flex;gap:10px;align-items:center;padding:5px 0;border-bottom:1px solid #1d3641}.lb span:first-child{width:22px;color:var(--gold);font-weight:700}
+.lb .bar{flex:1;height:8px;background:#0b1a22;border-radius:4px;overflow:hidden}.lb .bar i{display:block;height:100%}
+#log{font-size:13px;max-height:300px;overflow:auto;font-variant-numeric:tabular-nums}#log div{padding:2px 0;color:var(--dim)}#log b{color:var(--ink)}
+</style></head><body>
+<header>
+  <h1 id="title"></h1>
+  <span class="pill"><i class="dot" id="dot"></i><span id="st">connecting…</span></span>
+  <span class="pill" id="count"></span>
+  <span class="pill" id="race"></span>
+  <div class="ctl">scale <select id="scale"><option value="0">auto</option><option value="30">30 min</option><option value="60">60 min</option><option value="90">90 min</option><option value="120">120 min</option><option value="180">180 min</option></select>
+    <button id="start" class="primary">Start race now</button><button id="undo" hidden>Undo start</button><button id="demo">Demo preview</button></div>
+  <span id="clock"></span>
+</header>
+<div class="note" id="note"></div>
+<div class="msg" id="msg"></div>
+<main>
+  <h2>Where is everyone right now <small>solid = inside the room (scanned its QR) · dashed = on the way</small></h2>
+  <div class="rooms" id="rooms"></div><div class="waiting" id="waiting"></div>
+  <h2>Race <small id="axislabel"></small></h2>
+  <div class="race"><div class="axis" id="axis"></div><div id="lanes"></div>
+    <div class="legend"><span>● checkpoint = trial solved (number = order, label = room and race time)</span><span>◇ arrived in a room</span><span>pulsing dot = now, dotted line = time on the current trial</span><span>🦉 seal complete</span><span>⭐ treasure found</span></div></div>
+  <div class="cols"><div><h2>Ranking</h2><div class="box lb" id="lb"></div></div><div><h2>Event log</h2><div class="box" id="log"></div></div></div>
+</main>
+<script>
+const D = {"title": "The Alchemist's Advent: the Fifth Candle", "server": "https://ntfy.sh", "topic": "hunt-1be3ef2673cc88ca", "org": "c11b6fbd", "teams": [{"name": "Red", "colour": "#d62728", "route": [1, 2, 3, 4]}, {"name": "Blue", "colour": "#1f77b4", "route": [1, 3, 4, 2]}, {"name": "Green", "colour": "#2ca02c", "route": [2, 1, 4, 3]}, {"name": "Yellow", "colour": "#d4a000", "route": [2, 3, 1, 4]}, {"name": "Purple", "colour": "#8e44ad", "route": [3, 4, 2, 1]}, {"name": "Orange", "colour": "#e67e22", "route": [4, 1, 3, 2]}], "rooms": ["Room 1", "Room 2", "Room 3", "Room 4"], "elements": ["Fire", "Water", "Earth", "Air"], "final": "The Vault", "proofs": {"ZR64L46PWE": ["login", 0, 0], "GE5F45BK64": ["arrive", 0, 1], "E4DQG7EQHU": ["solve", 0, 1], "I45BBACNU4": ["arrive", 0, 2], "CH7DSU4YSY": ["solve", 0, 2], "3QBMHDD2VQ": ["arrive", 0, 3], "M3PMS2T2OI": ["solve", 0, 3], "6B63DSHGEA": ["arrive", 0, 4], "6KGHINXKHU": ["solve", 0, 4], "STNAXBTUVY": ["login", 1, 0], "ZD2ROGMNEM": ["arrive", 1, 1], "QGO3SYGZEY": ["solve", 1, 1], "5ULQLAQO3I": ["arrive", 1, 2], "QKPGKOGPLI": ["solve", 1, 2], "5J35BON4JI": ["arrive", 1, 3], "KHWLHYN5NI": ["solve", 1, 3], "W74WPN2A7Q": ["arrive", 1, 4], "7FDAZQLABA": ["solve", 1, 4], "SAXADM5VDI": ["login", 2, 0], "ZZV5FO2QRA": ["arrive", 2, 1], "INZL7EFG2A": ["solve", 2, 1], "OEM6V6HL6I": ["arrive", 2, 2], "BOJPTSGPFA": ["solve", 2, 2], "62Q53KSLB4": ["arrive", 2, 3], "XY47IJBH7U": ["solve", 2, 3], "JYM6PK37NI": ["arrive", 2, 4], "7SCBGRQA44": ["solve", 2, 4], "C533R4YQLE": ["login", 3, 0], "ZPNZQMIVN4": ["arrive", 3, 1], "TSIRNDKUMM": ["solve", 3, 1], "UP4NHFTDOU": ["arrive", 3, 2], "C732JUFSZU": ["solve", 3, 2], "IKOS2MYAQY": ["arrive", 3, 3], "2DNADYLJGY": ["solve", 3, 3], "UHWJJHRS6U": ["arrive", 3, 4], "22TLJ4P5II": ["solve", 3, 4], "3BD5G6CLUY": ["login", 4, 0], "UQZ6M5O73Q": ["arrive", 4, 1], "SU5E2UOKJE": ["solve", 4, 1], "ZT6I7XURXY": ["arrive", 4, 2], "JOW5RHZCYE": ["solve", 4, 2], "45KIK6ZZZU": ["arrive", 4, 3], "OOHABXXW3I": ["solve", 4, 3], "CC5QPKIRQ4": ["arrive", 4, 4], "GYZAVNF72Y": ["solve", 4, 4], "6XH363LY3A": ["login", 5, 0], "76SY4I5DMU": ["arrive", 5, 1], "OL36KQDXFQ": ["solve", 5, 1], "FSLLTBLTGY": ["arrive", 5, 2], "EXZCR5CDFM": ["solve", 5, 2], "ZFDPWT4N7M": ["arrive", 5, 3], "PO4ILDRD3Y": ["solve", 5, 3], "YAEARITNE4": ["arrive", 5, 4], "O4GT4RPRYU": ["solve", 5, 4]}};
+const N = D.rooms.length, NT = D.teams.length;
+const $ = id => document.getElementById(id);
+const occ = new Map();      // token -> {kind, team, room, ts:[every time it was received]}
+const starts = [];          // race start marks, in order received; the latest one counts
+let demo = false, dirty = true;
+const pad = n => String(n).padStart(2, '0');
+const clock = t => { const d = new Date(t * 1000); return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
+const hm = t => clock(t).slice(0, 5);
+const mmss = s => { s = Math.max(0, Math.round(s)); return s >= 3600 ? `${Math.floor(s / 3600)}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}` : `${Math.floor(s / 60)}:${pad(s % 60)}`; };
+$('title').textContent = D.title + ' · live race';
+
+/* ---- incoming messages ---- */
+function add(k, kind, team, room, t) {
+  let e = occ.get(k); if (!e) occ.set(k, e = { kind, team, room, ts: [] });
+  e.ts.push(t); dirty = true;
+}
+function ingest(msg) {
+  const body = String(msg.message || '').trim(); if (!body) return;
+  const [k, ts] = body.split('.');
+  let t = msg.time; const c = parseInt(ts);
+  if (c && c <= t && t - c < 21600) t = c;           // phone time if plausible (phone was offline), else relay time
+  const org = D.org;
+  if (k === 'S_' + org) { starts.push(t); dirty = true; return; }
+  if (k === 'U_' + org) { starts.pop(); dirty = true; return; }
+  if (k.startsWith('M_' + org + '_')) { const i = +k.split('_')[2]; if (D.teams[i]) add(k, 'treasure', i, 0, t); return; }
+  const info = D.proofs[k]; if (!info) return;         // forged / foreign token: ignored
+  add(k, info[0], info[1], info[2], t);
+}
+
+/* ---- state, recomputed from all messages (so Start / Undo can hide or restore test runs) ---- */
+function derive(now) {
+  const start = starts.length ? starts[starts.length - 1] : null;
+  const S = D.teams.map(() => ({ login: null, arrive: {}, solve: {}, treasure: null }));
+  const log = [], all = [];
+  for (const e of occ.values()) {
+    const cut = start === null ? -Infinity : start;    // Start hides everything before it, logins included
+    const ok = e.ts.filter(x => x >= cut); if (!ok.length) continue;
+    const t = Math.min(...ok), st = S[e.team]; if (!st) continue;
+    all.push(t);
+    if (e.kind === 'login') { st.login = t; log.push([t, e.team, 'logged in']); }
+    else if (e.kind === 'arrive') { st.arrive[e.room] = t; log.push([t, e.team, `arrived in ${D.rooms[e.room - 1]}`]); }
+    else if (e.kind === 'solve') { st.solve[e.room] = t; log.push([t, e.team, `solved ${D.rooms[e.room - 1]} (${D.elements[e.room - 1]})`]); }
+    else if (e.kind === 'treasure') { st.treasure = t; log.push([t, e.team, 'found the treasure ⭐']); }
+  }
+  const T0 = start ?? (all.length ? Math.min(...all) - 30 : now);
+  const teams = D.teams.map((tm, i) => {
+    const st = S[i];
+    const cps = Object.entries(st.solve).map(([room, t]) => ({ room: +room, t })).sort((a, b) => a.t - b.t);
+    const n = cps.length, done = n >= N;
+    const cur = done ? 0 : (tm.route.find(r => !(r in st.solve)) || 0);
+    const arrived = cur ? (st.arrive[cur] ?? null) : null;
+    // a team is on the race once it scans one of its QR codes; a login alone does not count (test phones)
+    const active = n > 0 || Object.keys(st.arrive).length > 0 || st.treasure !== null;
+    const lastCp = n ? cps[n - 1].t : null;
+    return { i, tm, st, cps, n, done, cur, arrived, active, lastCp };
+  });
+  return { start, T0, teams, log };
+}
+
+/* ---- render ---- */
+function render() {
+  const now = Math.floor(Date.now() / 1000), R = derive(now), T0 = R.T0;
+  const fixed = +$('scale').value * 60;
+  const span = fixed || Math.max(now - T0 + 60, 900) * 1.06;
+  const X = t => Math.min(100, Math.max(0, (t - T0) / span * 100)) + '%';
+  // header
+  $('race').textContent = R.start !== null ? `race started ${hm(R.start)}` : 'race not started';
+  $('undo').hidden = R.start === null;
+  $('note').textContent = R.start === null ? 'Press "Start race now" right before the teams begin. It sets time zero and hides earlier test runs.' : '';
+  $('axislabel').textContent = R.start !== null ? `minutes since the start (${hm(R.start)})` : `minutes since the first activity (${hm(T0)})`;
+  // axis (race time)
+  const steps = [60, 120, 300, 600, 900, 1800, 3600], step = steps.find(s => span / s <= 10) || 3600;
+  let ax = ''; for (let s = 0; s <= span; s += step) ax += `<div class="tick" style="left:${s / span * 100}%">+${s / 60} min</div>`;
+  $('axis').innerHTML = ax;
+  // lanes
+  $('lanes').innerHTML = R.teams.map(x => {
+    const c = x.tm.colour, since = Math.max(x.lastCp ?? T0, T0);
+    const sub = x.done ? 'seal complete' : !x.active ? 'not started' :
+      x.arrived ? `in ${D.rooms[x.cur - 1]} (${D.elements[x.cur - 1]})` : `heading to ${D.rooms[x.cur - 1]}`;
+    let h = `<div class="lane"><div class="who"><i style="background:${c}"></i>${x.tm.name}<small>${sub}</small></div><div class="track" style="--c:${c}">`;
+    if (x.n) h += `<div class="fill" style="width:${X(x.lastCp)};background:${c}"></div>`;
+    if (x.active && !x.done) h += `<div class="trail" style="left:${X(since)};width:calc(${X(now)} - ${X(since)});border-color:${c}"></div><div class="nowdot" style="left:${X(now)}"></div>`;
+    Object.entries(x.st.arrive).forEach(([room, t]) => h += `<div class="arr" style="left:${X(t)}" title="arrived in ${D.rooms[room - 1]} at ${clock(t)}"></div>`);
+    x.cps.forEach((cp, k) => h += `<div class="cp" style="left:${X(cp.t)};background:${c}" title="${D.rooms[cp.room - 1]} (${D.elements[cp.room - 1]}) solved at ${clock(cp.t)}">${k + 1}<em>R${cp.room} ${mmss(cp.t - T0)}</em></div>`);
+    if (x.done) h += `<div class="mark" style="left:${X(x.lastCp)}" title="seal complete at ${clock(x.lastCp)}">🦉</div>`;
+    if (x.st.treasure !== null) h += `<div class="mark" style="left:${X(x.st.treasure)};margin-left:${x.done && Math.abs(x.st.treasure - x.lastCp) < span / 40 ? 40 : 12}px" title="treasure found at ${clock(x.st.treasure)}">⭐</div>`;
+    const info = x.done ? `total ${mmss(x.lastCp - T0)}` : x.active ? `on task ${mmss(now - since)}` : '—';
+    h += `</div><div class="stat"><b>${x.n}/${N}</b> solved<br>${info}<button onclick="found(${x.i})" title="mark treasure found">⭐</button></div></div>`;
+    return h;
+  }).join('');
+  // rooms
+  const where = {}; for (let r = 0; r <= N; r++) where[r] = [];
+  R.teams.filter(x => x.active).forEach(x => where[x.done ? 0 : x.cur].push(x));
+  const chip = x => { const inside = x.done || x.arrived !== null, c = x.tm.colour;
+    return `<span class="chip ${inside ? '' : 'enroute'}" style="${inside ? `background:${c};border-color:${c}` : `border-color:${c};color:${c}`}" title="${inside ? 'inside' : 'on the way'}">${x.tm.name}${x.st.treasure !== null ? ' ⭐' : ''}</span>`; };
+  $('rooms').innerHTML = [...Array(N).keys()].map(r => r + 1).concat([0]).map(r => {
+    const xs = where[r], inside = xs.filter(x => x.done || x.arrived !== null).length;
+    const name = r ? `${D.rooms[r - 1]} · ${D.elements[r - 1]}` : D.final;
+    const what = !xs.length ? 'empty' : r ? `${inside} inside · ${xs.length - inside} on the way` : `${xs.length} sealed`;
+    return `<div class="room ${r && inside >= 3 ? 'crowd' : ''}"><b>${name}</b><small>${what}</small><div>${xs.map(chip).join('')}</div></div>`;
+  }).join('');
+  const idle = R.teams.filter(x => !x.active);
+  $('waiting').innerHTML = idle.length ? 'Not started yet: ' + idle.map(x => `<b style="color:${x.tm.colour}">${x.tm.name}</b>`).join(', ') : '';
+  // ranking
+  const rank = [...R.teams].sort((a, b) => (b.active - a.active) || (b.n - a.n) || ((a.lastCp ?? 1e12) - (b.lastCp ?? 1e12)));
+  $('lb').innerHTML = rank.map((x, k) => `<div><span>${k + 1}</span><span style="width:90px;font-weight:700;color:${x.tm.colour}">${x.tm.name}</span><span class="bar"><i style="width:${x.n / N * 100}%;background:${x.tm.colour}"></i></span><span>${x.n}/${N}${x.done ? ' 🦉' : ''}${x.st.treasure !== null ? ' ⭐' : ''}</span></div>`).join('');
+  // log
+  $('log').innerHTML = R.log.sort((a, b) => b[0] - a[0]).slice(0, 50).map(([t, i, m]) => `<div><b>${clock(t)}</b> · <b style="color:${D.teams[i].colour}">${D.teams[i].name}</b> ${m}</div>`).join('') || '<div>Waiting for the first team…</div>';
+  $('count').textContent = `${R.teams.filter(x => x.active).length}/${NT} teams started · ${R.teams.filter(x => x.done).length} sealed`;
+  dirty = false;
+}
+
+/* ---- organiser actions (sent through the relay, so every open dashboard agrees) ---- */
+async function post(body) {
+  try { const r = await fetch(`${D.server}/${D.topic}`, { method: 'POST', body: `${body}.${Math.floor(Date.now() / 1000)}` }); if (!r.ok) throw new Error('HTTP ' + r.status); }
+  catch (e) { $('msg').textContent = 'Could not reach the relay: ' + e.message; }
+}
+function found(i) {
+  if (demo) { add(`M_${D.org}_${i}`, 'treasure', i, 0, Math.floor(Date.now() / 1000)); return; }
+  if (confirm(`Mark ${D.teams[i].name} as having found the treasure?`)) post(`M_${D.org}_${i}`);
+}
+$('start').onclick = () => {
+  const q = 'Start the race NOW?\n\nThis sets time zero for everyone watching and hides all earlier activity (test runs and test logins).';
+  if (demo) { starts.push(Math.floor(Date.now() / 1000)); dirty = true; } else if (confirm(q)) post(`S_${D.org}`);
+};
+$('undo').onclick = () => {
+  if (demo) { starts.pop(); dirty = true; } else if (confirm('Undo the last race start? Earlier activity becomes visible again.')) post(`U_${D.org}`);
+};
+$('scale').onchange = () => dirty = true;
+
+/* ---- live connection ---- */
+function connect() {
+  if (demo) return;
+  const es = new EventSource(`${D.server}/${D.topic}/sse?since=all`);
+  es.onopen = () => { $('dot').className = 'dot on'; $('st').textContent = 'live'; $('msg').textContent = ''; };
+  es.onmessage = e => { try { const m = JSON.parse(e.data); if (m.event === 'message') ingest(m); } catch (_) {} };
+  es.onerror = () => { $('dot').className = 'dot err'; $('st').textContent = 'reconnecting…'; };
+}
+
+/* ---- demo preview (fake data, no network) ---- */
+$('demo').onclick = () => {
+  demo = true; occ.clear(); starts.length = 0; $('dot').className = 'dot'; $('st').textContent = 'DEMO (fake data)';
+  const inv = {}; for (const [k, v] of Object.entries(D.proofs)) inv[v.join('-')] = k;
+  const now = Math.floor(Date.now() / 1000), t0 = now - 38 * 60;
+  ingest({ time: t0 - 2400, message: inv['solve-0-1'] });          // an old test run: hidden by the start
+  starts.push(t0);
+  D.teams.forEach((tm, i) => {
+    if (i === 5) return;                                               // one team has not started yet
+    let t = t0 - 120 + i * 9; ingest({ time: t, message: inv[`login-${i}-0`] }); t = t0;
+    const speed = 0.8 + (i * 37 % 10) / 14, stop = [4, 4, 3, 4, 2, 3][i % 6];
+    for (let k = 0; k < N; k++) {
+      const room = tm.route[k]; t += 80 + 60 * ((i + k) % 3);
+      if (t > now - 20) break; ingest({ time: t, message: inv[`arrive-${i}-${room}`] });
+      if (k >= stop) break; t += (300 + 90 * ((i * 3 + k * 5) % 5)) * speed;
+      if (t > now - 10) break; ingest({ time: t, message: inv[`solve-${i}-${room}`] });
+    }
+  });
+  ingest({ time: now - 60, message: `M_${D.org}_0` });
+  dirty = true;
+};
+
+setInterval(() => { $('clock').textContent = clock(Math.floor(Date.now() / 1000)); }, 500);
+setInterval(render, 4000); setInterval(() => { if (dirty) render(); }, 300);
+if (location.search.includes('demo')) $('demo').click(); else connect();
+render();
+</script></body></html>
